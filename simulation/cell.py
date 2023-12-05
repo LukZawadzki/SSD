@@ -22,6 +22,9 @@ class Cell:
         self.left: Cell | None = None
         self.right: Cell | None = None
 
+        self.liquid_to_add = 0
+        self.next_type = _type
+
     def __repr__(self):
         # return f'<Cell x={self.x} y={self.y} liquid={self.liquid}>'
         return (f'{self.liquid:.1f}' if self.liquid else '' if self.type == CellType.BLANK else 'XXX').center(3)

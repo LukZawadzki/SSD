@@ -4,14 +4,12 @@ from simulation.simulation import Simulation
 
 simulation = Simulation()
 
-simulation.cells[2, 7].add_liquid(6.0)
-simulation.cells[1, 2].add_liquid(4.0)
-simulation.cells[5, 7].set_type(CellType.SOLID)
-simulation.cells[5, 6].set_type(CellType.SOLID)
-simulation.cells[5, 8].set_type(CellType.SOLID)
-simulation.cells[4, 5].set_type(CellType.SOLID)
-simulation.cells[4, 9].set_type(CellType.SOLID)
-
-simulation.run()
+simulation.add_liquid(2, 7, 6.0)
+simulation.add_liquid(1, 2, 4.0)
+simulation.set_cell_type(5, 7, CellType.SOLID)
+simulation.set_cell_type(5, 6, CellType.SOLID)
+simulation.set_cell_type(5, 8, CellType.SOLID)
+simulation.set_cell_type(4, 5, CellType.SOLID)
+simulation.set_cell_type(4, 9, CellType.SOLID)
 
 display.run(simulation)
