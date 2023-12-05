@@ -1,3 +1,3 @@
-import display
+from visual import display
 
 display.run()
