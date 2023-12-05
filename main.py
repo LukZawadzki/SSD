@@ -1,4 +1,4 @@
-import display
+from visual import display
 from simulation.cell import CellType
 from simulation.simulation import Simulation
 

@@ -1,6 +1,5 @@
-from button import Button
-from utils import *
-
+from visual.button import Button
+from visual.utils import *
 
 def run():
     pg.init()
