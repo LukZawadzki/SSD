@@ -1,11 +1,18 @@
+import time
+
+import numpy as np
+
 from visual.button import Button
 from visual.utils import *
+from config import *
+from simulation.cell import CellType
 
 
-def run():
+def run(simulation):
+    grid: np.ndarray = simulation.cells
     pg.init()
 
-    screen = pg.display.set_mode(screen_size, pg.RESIZABLE)
+    screen = pg.display.set_mode((WIDTH*pixel_size, HEIGHT*pixel_size), pg.RESIZABLE)
 
     reset_button = Button(screen, 15, pg.display.get_surface().get_size()[1] - 50, 75, 40,
                           "Reset", 24, (0, 0, 0), (0, 0, 0))
@@ -58,31 +65,42 @@ def run():
         pause_button.draw()
 
         if not paused:
-            if lmb_pressed:  # Define behavior for lmb pressed down
-                grid_pos = get_grid_pos()
+            time.sleep(1 / FPS)
+            simulation.run()
+            grid = simulation.cells
+        if lmb_pressed:  # Define behavior for lmb pressed down
+            grid_pos = get_grid_pos()
 
-                if not mode:  # If block exists at pressed position then remove it
+            if not mode:  # If block exists at pressed position then remove it
+                try:
+                    wall_blocks.pop(grid_pos)
+                except KeyError:
+                    pass
+            else:
+                if not reset_button.Rect.collidepoint(grid_pos) and not pause_button.Rect.collidepoint(grid_pos):
+                    wall_blocks.update({grid_pos: create_block(grid_pos, pixel_size)})  # else add it
                     try:
-                        wall_blocks.pop(grid_pos)
+                        water_blocks.pop(grid_pos)  # Try to remove water if adding wall on top of it
                     except KeyError:
                         pass
-                else:
-                    if not reset_button.Rect.collidepoint(grid_pos) and not pause_button.Rect.collidepoint(grid_pos):
-                        wall_blocks.update({grid_pos: create_block(grid_pos, pixel_size)})  # else add it
-                        try:
-                            water_blocks.pop(grid_pos)  # Try to remove water if adding wall on top of it
-                        except KeyError:
-                            pass
 
-            if rmb_pressed:
-                grid_pos = get_grid_pos()
-                if grid_pos not in wall_blocks.keys():  # Don't put water on walls
-                    water_blocks.update({grid_pos: create_block(grid_pos, pixel_size)})
+        if rmb_pressed:
+            grid_pos = get_grid_pos()
+            if grid_pos not in wall_blocks.keys():  # Don't put water on walls
+                water_blocks.update({grid_pos: create_block(grid_pos, pixel_size)})
 
         for key in wall_blocks.keys():
             pg.Surface.fill(screen, wall_color, wall_blocks[key])  # Add every wall to surface
         for key in water_blocks.keys():
             pg.Surface.fill(screen, water_color, water_blocks[key])
+        for cell in grid.flatten():
+            cell_pos = (cell.y * pixel_size, cell.x * pixel_size)
+            if cell.type == CellType.SOLID:
+                pg.Surface.fill(screen, wall_color,
+                                create_block(cell_pos, pixel_size))
+            elif cell.liquid > 0:
+                pg.Surface.fill(screen, water_color,
+                                create_block(cell_pos, pixel_size))
         # Redraw
         pg.display.flip()
 

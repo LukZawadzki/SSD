@@ -14,4 +14,4 @@ simulation.cells[4, 9].set_type(CellType.SOLID)
 
 simulation.run()
 
-display.run()
+display.run(simulation)
