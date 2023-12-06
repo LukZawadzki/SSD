@@ -1,7 +1,5 @@
 import time
 
-import numpy as np
-
 from visual.button import Button
 from visual.utils import *
 from config import *
@@ -9,7 +7,6 @@ from simulation.cell import CellType
 
 
 def run(simulation):
-    grid: np.ndarray = simulation.cells
     pg.init()
 
     screen = pg.display.set_mode((WIDTH*pixel_size, HEIGHT*pixel_size), pg.RESIZABLE)
@@ -27,6 +24,12 @@ def run(simulation):
 
     while running:
         screen.fill((255, 255, 255))  # Make background white
+
+        if not paused:
+            time.sleep(1 / FPS)
+            simulation.run()
+        grid = simulation.cells
+
         events = pg.event.get()
         for event in events:
             if event.type == pg.QUIT:
@@ -34,13 +37,15 @@ def run(simulation):
             elif event.type == pg.MOUSEBUTTONDOWN:
                 if event.button == 1:  # LMB pressed
                     lmb_pressed = True
-                    grid_pos = get_grid_pos()
-                    if wall_blocks.get(grid_pos) is not None:
+                    display_grid_pos = get_grid_pos()
+                    sim_grid_pos = (display_grid_pos[0] // pixel_size, display_grid_pos[1] // pixel_size)
+                    if grid[sim_grid_pos[1], sim_grid_pos[0]].type == CellType.SOLID:
                         mode = 0  # With this mode it will remove blocks when dragged
                     else:
                         mode = 1  # With this mode it will add blocks
                     if reset_button.Rect.collidepoint(event.pos):
-                        reset()
+                        simulation.reset()
+                        pg.display.flip()
                         mode = 0  # Don't draw on button when clicked
                     elif pause_button.Rect.collidepoint(event.pos):
                         if paused:
@@ -64,43 +69,31 @@ def run(simulation):
         reset_button.draw()
         pause_button.draw()
 
-        if not paused:
-            time.sleep(1 / FPS)
-            simulation.run()
-            grid = simulation.cells
         if lmb_pressed:  # Define behavior for lmb pressed down
-            grid_pos = get_grid_pos()
-
+            display_grid_pos = get_grid_pos()
+            sim_grid_pos = (display_grid_pos[0] // pixel_size, display_grid_pos[1] // pixel_size)
             if not mode:  # If block exists at pressed position then remove it
-                try:
-                    wall_blocks.pop(grid_pos)
-                except KeyError:
-                    pass
+                simulation.set_cell_type(sim_grid_pos[1], sim_grid_pos[0], CellType.BLANK)
             else:
-                if not reset_button.Rect.collidepoint(grid_pos) and not pause_button.Rect.collidepoint(grid_pos):
-                    wall_blocks.update({grid_pos: create_block(grid_pos, pixel_size)})  # else add it
-                    try:
-                        water_blocks.pop(grid_pos)  # Try to remove water if adding wall on top of it
-                    except KeyError:
-                        pass
+                # check if pressed on top of buttons
+                if (not reset_button.Rect.collidepoint(display_grid_pos)
+                        and not pause_button.Rect.collidepoint(display_grid_pos)):
+                    simulation.set_cell_type(sim_grid_pos[1], sim_grid_pos[0], CellType.SOLID)
 
         if rmb_pressed:
-            grid_pos = get_grid_pos()
-            if grid_pos not in wall_blocks.keys():  # Don't put water on walls
-                water_blocks.update({grid_pos: create_block(grid_pos, pixel_size)})
+            display_grid_pos = get_grid_pos()
+            sim_grid_pos = (display_grid_pos[0] // pixel_size, display_grid_pos[1] // pixel_size)
+            if not grid[sim_grid_pos[1], sim_grid_pos[0]].type == CellType.SOLID:
+                simulation.add_liquid(sim_grid_pos[1], sim_grid_pos[0], ADDED_LIQUID_AMOUNT)
 
-        for key in wall_blocks.keys():
-            pg.Surface.fill(screen, wall_color, wall_blocks[key])  # Add every wall to surface
-        for key in water_blocks.keys():
-            pg.Surface.fill(screen, water_color, water_blocks[key])
         for cell in grid.flatten():
-            cell_pos = (cell.y * pixel_size, cell.x * pixel_size)
+            pixel_pos = (cell.y * pixel_size, cell.x * pixel_size)
             if cell.type == CellType.SOLID:
                 pg.Surface.fill(screen, wall_color,
-                                create_block(cell_pos, pixel_size))
+                                create_block(pixel_pos, pixel_size))
             elif cell.liquid > 0:
                 pg.Surface.fill(screen, water_color,
-                                create_block(cell_pos, pixel_size))
+                                create_block(pixel_pos, pixel_size))
         # Redraw
         pg.display.flip()
 
