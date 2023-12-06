@@ -92,8 +92,8 @@ def run(simulation):
                 pg.Surface.fill(screen, wall_color,
                                 create_block(pixel_pos, pixel_size))
             elif cell.liquid > 0:
-                pg.Surface.fill(screen, water_color,
-                                create_block(pixel_pos, pixel_size))
+                scaled_color = calc_color_from_pressure(cell.liquid)
+                pg.Surface.fill(screen, scaled_color, create_block(pixel_pos, pixel_size))
         # Redraw
         pg.display.flip()
 

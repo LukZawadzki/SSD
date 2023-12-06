@@ -234,5 +234,5 @@ class Simulation:
 
         self.diffs = np.zeros((HEIGHT, WIDTH))
 
-        print()
-        print(self.cells)
+        # print()
+        # print(self.cells)
