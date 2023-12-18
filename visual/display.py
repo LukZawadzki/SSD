@@ -1,9 +1,8 @@
-import time
-
 from visual.button import Button
 from visual.utils import *
 from config import *
 from simulation.cell import CellType
+from simulation.cell import Cell
 
 
 def run(simulation):
@@ -26,7 +25,8 @@ def run(simulation):
     font = pg.font.Font(None, 36)
 
     cycle = 0
-
+    grid = simulation.cells
+    unsettled_cells = [cell for row in grid for cell in row if not cell.settled]
     while running:
         screen.fill((255, 255, 255))  # Make background white
 
@@ -35,8 +35,8 @@ def run(simulation):
             clock.tick(FPS)
             simulation.run()
             cycle += 1
-        grid = simulation.cells
-        unsettled_cells = [cell for row in grid for cell in row if not cell.settled]
+            grid = simulation.cells
+            unsettled_cells = [cell for row in grid for cell in row if not cell.settled]
 
         events = pg.event.get()
         for event in events:
@@ -56,6 +56,8 @@ def run(simulation):
                         pg.display.flip()
                         cycle = 0
                         mode = 0  # Don't draw on button when clicked
+                        unsettled_cells = []
+                        simulation.run()
                     elif pause_button.Rect.collidepoint(event.pos):
                         if paused:
                             pause_button.change_text("Pause")
@@ -80,17 +82,54 @@ def run(simulation):
             sim_grid_pos = (display_grid_pos[0] // PIXEL_SIZE, display_grid_pos[1] // PIXEL_SIZE)
             if not mode:  # If block exists at pressed position then remove it
                 simulation.set_cell_type(sim_grid_pos[1], sim_grid_pos[0], CellType.BLANK)
+                # Update display even if simulation is paused
+                for cell in unsettled_cells:
+                    if cell.x == sim_grid_pos[1] and cell.y == sim_grid_pos[0]:
+                        cell.type = CellType.BLANK
+                        cell.liquid = 0
+                        break
             else:
                 # check if pressed on top of buttons
                 if (not reset_button.Rect.collidepoint(display_grid_pos)
                         and not pause_button.Rect.collidepoint(display_grid_pos)):
                     simulation.set_cell_type(sim_grid_pos[1], sim_grid_pos[0], CellType.SOLID)
+                    # Update display even when simulation is paused
+                    # FIXME: when adding walls while sim is running, it only draws every other wall,
+                    #  but when water is splashed it refreshes itself and draws it fully
+                    found_cell = False
+
+                    # NOTE: seems to work fine with below code commented out, but I thought that it'd be
+                    # impossible without it to add block on water, but somehow it seems to work?
+
+                    # for cell in unsettled_cells:
+                    #     if cell.x == sim_grid_pos[1] and cell.y == sim_grid_pos[0]:
+                    #         cell.type = CellType.SOLID
+                    #         cell.liquid = 0
+                    #         found_cell = True
+                    #         break
+                    if not found_cell:
+                        cell_to_add = Cell(sim_grid_pos[1], sim_grid_pos[0], CellType.SOLID)
+                        cell_to_add.settled = False
+                        unsettled_cells.append(cell_to_add)
+
+                    # TODO: Still when moving mouse fast it skips to draw some cells, but water reveals them
 
         if rmb_pressed:
             display_grid_pos = get_grid_pos()
             sim_grid_pos = (display_grid_pos[0] // PIXEL_SIZE, display_grid_pos[1] // PIXEL_SIZE)
             if not grid[sim_grid_pos[1], sim_grid_pos[0]].type == CellType.SOLID:
                 simulation.add_liquid(sim_grid_pos[1], sim_grid_pos[0], ADDED_LIQUID_AMOUNT)
+                # Update display even when simulation is paused
+                found_cell = False
+                for cell in unsettled_cells:
+                    if cell.x == sim_grid_pos[1] and cell.y == sim_grid_pos[0]:
+                        cell.add_liquid(ADDED_LIQUID_AMOUNT)
+                        found_cell = True
+                        break
+                if not found_cell:
+                    cell_to_add = Cell(sim_grid_pos[1], sim_grid_pos[0], CellType.BLANK)
+                    cell_to_add.add_liquid(ADDED_LIQUID_AMOUNT)
+                    unsettled_cells.append(cell_to_add)
 
         for cell in unsettled_cells:
             pixel_pos = (cell.y * PIXEL_SIZE, cell.x * PIXEL_SIZE)
