@@ -7,6 +7,8 @@ import numpy as np
 class CellType(Enum):
     BLANK = 0
     SOLID = 1
+    SOURCE = 2
+    DRAIN = 3
 
 
 class Cell:
@@ -41,11 +43,17 @@ class Cell:
         self.liquid += amount
         self.settled = False
 
+    def remove_liquid(self, amount: float):
+        """Removes liquid from the cell."""
+
+        self.liquid -= min(amount, self.liquid)
+        self.settled = False
+
     def set_type(self, new_type: CellType):
         """Sets the type of the cell."""
 
         self.type = new_type
-        if self.type == CellType.SOLID:
+        if self.type != CellType.BLANK:
             self.liquid = 0
 
         self.unsettle_neighbors()

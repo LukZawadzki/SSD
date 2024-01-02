@@ -10,7 +10,9 @@ from config import (
     FLOW_MIN,
     FLOW_SPEED,
     COMPRESSION_MAX,
-    ITERATIONS_PER_FRAME
+    ITERATIONS_PER_FRAME,
+    SOURCE_LIQUID_PER_ITERATION,
+    DRAIN_LIQUID_PER_ITERATION
 )
 
 
@@ -64,7 +66,7 @@ class Simulation:
     def _flow_bottom(self, cell: Cell) -> float:
         """Flows the liquid to the bottom cell."""
 
-        if cell.bottom is None or cell.bottom.type == CellType.SOLID:
+        if cell.bottom is None or cell.bottom.type != CellType.BLANK:
             return 0
 
         flow = self._calculate_vertical_flow_value(cell.liquid, cell.bottom) - cell.bottom.liquid
@@ -84,7 +86,7 @@ class Simulation:
     def _flow_left(self, cell: Cell, remaining_liquid: float) -> float:
         """Flows the liquid to the left cell."""
 
-        if cell.left is None or cell.left.type == CellType.SOLID:
+        if cell.left is None or cell.left.type != CellType.BLANK:
             return 0
 
         flow = (remaining_liquid - cell.left.liquid) / 4
@@ -103,7 +105,7 @@ class Simulation:
     def _flow_right(self, cell: Cell, remaining_liquid: float) -> float:
         """Flows the liquid to the right cell."""
 
-        if cell.right is None or cell.right.type == CellType.SOLID:
+        if cell.right is None or cell.right.type != CellType.BLANK:
             return 0
 
         flow = (remaining_liquid - cell.right.liquid) / 3
@@ -122,7 +124,7 @@ class Simulation:
     def _flow_top(self, cell: Cell, remaining_liquid: float) -> float:
         """Flows the liquid to the top cell under pressure."""
 
-        if cell.top is None or cell.top.type == CellType.SOLID:
+        if cell.top is None or cell.top.type != CellType.BLANK:
             return 0
 
         flow = remaining_liquid - self._calculate_vertical_flow_value(remaining_liquid, cell.top)
@@ -137,6 +139,52 @@ class Simulation:
             cell.top.unsettle()
 
         return flow
+
+    @staticmethod
+    def _handle_source(source: Cell):
+        """Handles a source cell."""
+
+        cells_to_flow = []
+
+        if source.top and source.top.type == CellType.BLANK:
+            cells_to_flow.append(source.top)
+
+        if source.bottom and source.bottom.type == CellType.BLANK:
+            cells_to_flow.append(source.bottom)
+
+        if source.left and source.left.type == CellType.BLANK:
+            cells_to_flow.append(source.left)
+
+        if source.right and source.right.type == CellType.BLANK:
+            cells_to_flow.append(source.right)
+
+        liquid_each_cell = SOURCE_LIQUID_PER_ITERATION / len(cells_to_flow)
+
+        for cell in cells_to_flow:
+            cell.add_liquid(liquid_each_cell)
+
+    @staticmethod
+    def _handle_drain(drain: Cell):
+        """Handles a drain cell."""
+
+        cells_to_flow = []
+
+        if drain.top and drain.top.type == CellType.BLANK:
+            cells_to_flow.append(drain.top)
+
+        if drain.bottom and drain.bottom.type == CellType.BLANK:
+            cells_to_flow.append(drain.bottom)
+
+        if drain.left and drain.left.type == CellType.BLANK:
+            cells_to_flow.append(drain.left)
+
+        if drain.right and drain.right.type == CellType.BLANK:
+            cells_to_flow.append(drain.right)
+
+        liquid_each_cell = DRAIN_LIQUID_PER_ITERATION / len(cells_to_flow)
+
+        for cell in cells_to_flow:
+            cell.remove_liquid(liquid_each_cell)
 
     def add_liquid(self, x: int, y: int, amount: float):
         """Adds liquid to the target cell."""
@@ -166,6 +214,14 @@ class Simulation:
                 for cell in row:
                     if i == self.iterations_per_frame and (cell.type == CellType.SOLID or cell.liquid >= LIQUID_MIN):
                         cells_to_display.add(cell)
+
+                    if cell.type == CellType.SOURCE:
+                        self._handle_source(cell)
+                        continue
+
+                    if cell.type == CellType.DRAIN:
+                        self._handle_drain(cell)
+                        continue
 
                     if cell.settled:
                         continue
