@@ -21,6 +21,8 @@ def run(simulation: Simulation):
     running = True
     lmb_pressed = False
     rmb_pressed = False
+    s_pressed = False
+    d_pressed = False
     paused = True
     mode = 1
 
@@ -66,10 +68,9 @@ def run(simulation: Simulation):
                     display_grid_pos = get_grid_pos()
                     sim_grid_pos = (display_grid_pos[0] // PIXEL_SIZE, display_grid_pos[1] // PIXEL_SIZE)
                     if display_grid_pos[1] < HEIGHT*PIXEL_SIZE:  # Check if within simulation space
-                        if grid[sim_grid_pos[1], sim_grid_pos[0]].type == CellType.SOLID:
+                        if grid[sim_grid_pos[1], sim_grid_pos[0]].type in [CellType.SOLID, CellType.DRAIN, CellType.SOURCE]:
                             mode = 0  # With this mode it will remove blocks when dragged
-                        else:
-                            mode = 1  # With this mode it will add blocks
+
                     if reset_button.Rect.collidepoint(event.pos):
                         simulation.reset()
                         pg.display.flip()
@@ -89,6 +90,16 @@ def run(simulation: Simulation):
                     lmb_pressed = False
                 if event.button == 3:  # RMB
                     rmb_pressed = False
+            elif event.type == pg.KEYDOWN:  # Keyboard press
+                if event.key == pg.K_s:
+                    s_pressed = True
+                elif event.key == pg.K_d:
+                    d_pressed = True
+            elif event.type == pg.KEYUP:
+                if event.key == pg.K_s:
+                    s_pressed = False
+                elif event.key == pg.K_d:
+                    d_pressed = False
 
         added_liquid_slider.draw()
         compression_slider.draw()
@@ -130,33 +141,25 @@ def run(simulation: Simulation):
                     # check if pressed on top of buttons
                     if (not reset_button.Rect.collidepoint(display_grid_pos)
                             and not pause_button.Rect.collidepoint(display_grid_pos)):
-                        simulation.set_cell_type(sim_grid_pos[1], sim_grid_pos[0], CellType.SOLID)
-                        # Update display even when simulation is paused
-                        # FIXME: when adding walls while sim is running, it only draws every other wall,
-                        #  but when water is splashed it refreshes itself and draws it fully
-                        found_cell = False
-
-                        # NOTE: seems to work fine with below code commented out, but I thought that it'd be
-                        # impossible without it to add block on water, but somehow it seems to work?
-
-                        # for cell in unsettled_cells:
-                        #     if cell.x == sim_grid_pos[1] and cell.y == sim_grid_pos[0]:
-                        #         cell.type = CellType.SOLID
-                        #         cell.liquid = 0
-                        #         found_cell = True
-                        #         break
-                        if not found_cell:
+                        if s_pressed:
+                            simulation.set_cell_type(sim_grid_pos[1], sim_grid_pos[0], CellType.SOURCE)
+                            cell_to_add = Cell(sim_grid_pos[1], sim_grid_pos[0], CellType.SOURCE)
+                            cell_to_add.settled = False
+                        elif d_pressed:
+                            simulation.set_cell_type(sim_grid_pos[1], sim_grid_pos[0], CellType.DRAIN)
+                            cell_to_add = Cell(sim_grid_pos[1], sim_grid_pos[0], CellType.DRAIN)
+                            cell_to_add.settled = False
+                        else:
+                            simulation.set_cell_type(sim_grid_pos[1], sim_grid_pos[0], CellType.SOLID)
                             cell_to_add = Cell(sim_grid_pos[1], sim_grid_pos[0], CellType.SOLID)
                             cell_to_add.settled = False
-                            cells_to_display.add(cell_to_add)
-
-                        # TODO: Still when moving mouse fast it skips to draw some cells, but water reveals them
+                        cells_to_display.add(cell_to_add)
 
         if rmb_pressed:
             display_grid_pos = get_grid_pos()
             if display_grid_pos[1] < HEIGHT * PIXEL_SIZE and 0 <= display_grid_pos[0] < WIDTH*PIXEL_SIZE:
                 sim_grid_pos = (display_grid_pos[0] // PIXEL_SIZE, display_grid_pos[1] // PIXEL_SIZE)
-                if not grid[sim_grid_pos[1], sim_grid_pos[0]].type == CellType.SOLID:
+                if not grid[sim_grid_pos[1], sim_grid_pos[0]].type in [CellType.SOLID, CellType.DRAIN, CellType.SOURCE]:
                     simulation.add_liquid(sim_grid_pos[1], sim_grid_pos[0], liquid_amount)
 
                     if paused:
@@ -179,6 +182,10 @@ def run(simulation: Simulation):
 
             if cell.type == CellType.SOLID:  # Walls
                 pg.Surface.fill(screen, WALL_COLOR, create_block(pixel_pos, PIXEL_SIZE, PIXEL_SIZE))
+            elif cell.type == CellType.SOURCE:  # Wall
+                pg.Surface.fill(screen, SOURCE_COLOR, create_block(pixel_pos, PIXEL_SIZE, PIXEL_SIZE))
+            elif cell.type == CellType.DRAIN:  # Walls
+                pg.Surface.fill(screen, DRAIN_COLOR, create_block(pixel_pos, PIXEL_SIZE, PIXEL_SIZE))
             elif cell.liquid > LIQUID_MIN:  # Water
                 scaled_color = calc_color_from_pressure(cell.liquid)
                 if not is_falling:
