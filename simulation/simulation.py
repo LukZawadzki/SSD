@@ -140,8 +140,7 @@ class Simulation:
 
         return flow
 
-    @staticmethod
-    def _handle_source(source: Cell):
+    def _handle_source(self, source: Cell):
         """Handles a source cell."""
 
         cells_to_flow = []
@@ -161,10 +160,10 @@ class Simulation:
         liquid_each_cell = SOURCE_LIQUID_PER_ITERATION / len(cells_to_flow)
 
         for cell in cells_to_flow:
-            cell.add_liquid(liquid_each_cell)
+            cell.settled = False
+            self.diffs[cell.x, cell.y] += liquid_each_cell
 
-    @staticmethod
-    def _handle_drain(drain: Cell):
+    def _handle_drain(self, drain: Cell):
         """Handles a drain cell."""
 
         cells_to_flow = []
@@ -184,7 +183,8 @@ class Simulation:
         liquid_each_cell = DRAIN_LIQUID_PER_ITERATION / len(cells_to_flow)
 
         for cell in cells_to_flow:
-            cell.remove_liquid(liquid_each_cell)
+            cell.settled = False
+            self.diffs[cell.x, cell.y] -= min(liquid_each_cell, cell.liquid)
 
     def add_liquid(self, x: int, y: int, amount: float):
         """Adds liquid to the target cell."""

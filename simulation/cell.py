@@ -43,12 +43,6 @@ class Cell:
         self.liquid += amount
         self.settled = False
 
-    def remove_liquid(self, amount: float):
-        """Removes liquid from the cell."""
-
-        self.liquid -= min(amount, self.liquid)
-        self.settled = False
-
     def set_type(self, new_type: CellType):
         """Sets the type of the cell."""
 
