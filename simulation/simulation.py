@@ -157,7 +157,7 @@ class Simulation:
         if source.right and source.right.type == CellType.BLANK:
             cells_to_flow.append(source.right)
 
-        liquid_each_cell = SOURCE_LIQUID_PER_ITERATION / len(cells_to_flow)
+        liquid_each_cell = SOURCE_LIQUID_PER_ITERATION / (len(cells_to_flow) or 1)
 
         for cell in cells_to_flow:
             cell.settled = False
@@ -180,7 +180,7 @@ class Simulation:
         if drain.right and drain.right.type == CellType.BLANK:
             cells_to_flow.append(drain.right)
 
-        liquid_each_cell = DRAIN_LIQUID_PER_ITERATION / len(cells_to_flow)
+        liquid_each_cell = DRAIN_LIQUID_PER_ITERATION / (len(cells_to_flow) or 1)
 
         for cell in cells_to_flow:
             cell.settled = False
