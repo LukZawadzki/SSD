@@ -30,14 +30,14 @@ def run(simulation: Simulation):
     font = pg.font.Font(None, 36)
 
     added_liquid_slider = CustomSlider(screen, my_font, 170, pg.display.get_surface().get_size()[1] - 95,
-                                       120, 20, 0.1, 10, 0.1, "Add liquid amount")
+                                       120, 20, 0.1, 10, 0.1, "Add liquid amount", 2.5)
     compression_slider = CustomSlider(screen, my_font, 320, pg.display.get_surface().get_size()[1] - 95,
-                                      120, 20, 0.1, 1, 0.1, "Fluid compression")
+                                      120, 20, 0.1, 1, 0.05, "Fluid compression", 0.25)
 
     flow_slider = CustomSlider(screen, my_font, 20, pg.display.get_surface().get_size()[1] - 95,
-                               120, 20, 0.1, 1, 0.1, "Flow rate")
+                               120, 20, 0.1, 1, 0.1, "Flow rate", 0.7)
     iterations_slider = CustomSlider(screen, my_font, 470, pg.display.get_surface().get_size()[1] - 95,
-                                     120, 20, 1, 6, 1, "Sim speed")
+                                     120, 20, 1, 6, 1, "Sim speed", 3)
 
     prev_compression, current_compression = COMPRESSION_MAX, COMPRESSION_MAX
     prev_flow, current_flow = FLOW_SPEED, FLOW_SPEED
@@ -95,9 +95,9 @@ def run(simulation: Simulation):
         flow_slider.draw()
         iterations_slider.draw()
 
-        current_flow = flow_slider.get_value()
+        current_flow = flow_slider.get_value(2)
         current_iter = int(iterations_slider.get_value())
-        current_compression = compression_slider.get_value()
+        current_compression = compression_slider.get_value(2)
 
         if current_flow != prev_flow:
             simulation.flow_speed = current_flow

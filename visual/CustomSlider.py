@@ -5,7 +5,7 @@ from pygame_widgets.textbox import TextBox
 
 class CustomSlider:
     def __init__(self, screen: pg.Surface, font:pg.font, x: int, y: int, width: int,
-                 height: int, min_value: float, max_value: float, step: float, text: str):
+                 height: int, min_value: float, max_value: float, step: float, text: str, default_value: float = None):
         pg.font.init()
         self.screen = screen
         self.font = font
@@ -13,6 +13,8 @@ class CustomSlider:
         self.y = y
 
         self.slider = Slider(self.screen, x, y, width, height, min=min_value, max=max_value, step=step)
+        if default_value:
+            self.slider.setValue(default_value)
         self.output = TextBox(self.screen, x + width//2 - 10, y-height-10, 25, 25, fontSize=14)
         self.output.disable()
         self.slider_text = self.font.render(text, False, (0, 0, 0))
