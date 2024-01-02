@@ -1,5 +1,6 @@
 import pygame as pg
-from config import *
+
+from config import PIXEL_SIZE, WATER_COLOR, DARK_WATER_COLOR
 
 
 def display_fps(clock, font, screen):

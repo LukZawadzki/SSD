@@ -30,14 +30,14 @@ def run(simulation: Simulation):
     font = pg.font.Font(None, 36)
 
     added_liquid_slider = CustomSlider(screen, my_font, 170, pg.display.get_surface().get_size()[1] - 95,
-                                       120, 20, 0.1, 10, 0.1, "Add liquid amount", 2.5)
+                                       120, 20, 0.1, 10, 0.1, "Add liquid amount", ADDED_LIQUID_AMOUNT)
     compression_slider = CustomSlider(screen, my_font, 320, pg.display.get_surface().get_size()[1] - 95,
-                                      120, 20, 0.1, 1, 0.05, "Fluid compression", 0.25)
+                                      120, 20, 0.1, 1, 0.05, "Fluid compression", COMPRESSION_MAX)
 
     flow_slider = CustomSlider(screen, my_font, 20, pg.display.get_surface().get_size()[1] - 95,
-                               120, 20, 0.1, 1, 0.1, "Flow rate", 0.7)
+                               120, 20, 0.1, 1, 0.1, "Flow rate", FLOW_SPEED)
     iterations_slider = CustomSlider(screen, my_font, 470, pg.display.get_surface().get_size()[1] - 95,
-                                     120, 20, 1, 6, 1, "Sim speed", 3)
+                                     120, 20, 1, 6, 1, "Sim speed", ITERATIONS_PER_FRAME)
 
     prev_compression, current_compression = COMPRESSION_MAX, COMPRESSION_MAX
     prev_flow, current_flow = FLOW_SPEED, FLOW_SPEED
@@ -111,7 +111,7 @@ def run(simulation: Simulation):
             simulation.compression_max = current_compression
             prev_compression = current_compression
 
-        ADDED_LIQUID_AMOUNT = added_liquid_slider.get_value()
+        liquid_amount = added_liquid_slider.get_value()
         pygame_widgets.update(events)
 
         if lmb_pressed:  # Define behavior for lmb pressed down
@@ -157,19 +157,20 @@ def run(simulation: Simulation):
             if display_grid_pos[1] < HEIGHT * PIXEL_SIZE and 0 <= display_grid_pos[0] < WIDTH*PIXEL_SIZE:
                 sim_grid_pos = (display_grid_pos[0] // PIXEL_SIZE, display_grid_pos[1] // PIXEL_SIZE)
                 if not grid[sim_grid_pos[1], sim_grid_pos[0]].type == CellType.SOLID:
-                    simulation.add_liquid(sim_grid_pos[1], sim_grid_pos[0], ADDED_LIQUID_AMOUNT)
-                    # Update display even when simulation is paused
-                    found_cell = False
-                    for cell in cells_to_display:
-                        if cell.x == sim_grid_pos[1] and cell.y == sim_grid_pos[0]:
-                            cell.add_liquid(ADDED_LIQUID_AMOUNT)
-                            found_cell = True
-                            break
+                    simulation.add_liquid(sim_grid_pos[1], sim_grid_pos[0], liquid_amount)
 
-                    if not found_cell:
-                        cell_to_add = Cell(sim_grid_pos[1], sim_grid_pos[0], CellType.BLANK)
-                        cell_to_add.add_liquid(ADDED_LIQUID_AMOUNT)
-                        cells_to_display.add(cell_to_add)
+                    if paused:
+                        # Update display even when simulation is paused
+                        found_cell = False
+                        for cell in cells_to_display:
+                            if cell.x == sim_grid_pos[1] and cell.y == sim_grid_pos[0]:
+                                found_cell = True
+                                break
+
+                        if not found_cell:
+                            cell_to_add = Cell(sim_grid_pos[1], sim_grid_pos[0], CellType.BLANK)
+                            cell_to_add.add_liquid(liquid_amount)
+                            cells_to_display.add(cell_to_add)
 
         # print(len(cells_to_display))
         for cell in cells_to_display:
