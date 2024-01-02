@@ -11,7 +11,7 @@ def run(simulation: Simulation):
     pg.init()
     pg.font.init()
 
-    screen = pg.display.set_mode((WIDTH * PIXEL_SIZE, HEIGHT * PIXEL_SIZE + 75), pg.RESIZABLE)
+    screen = pg.display.set_mode((WIDTH * PIXEL_SIZE, HEIGHT * PIXEL_SIZE + 125))
 
     reset_button = Button(screen, 15, pg.display.get_surface().get_size()[1] - 50, 75, 40,
                           "Reset", 24, (0, 0, 0), (0, 0, 0))
@@ -29,8 +29,19 @@ def run(simulation: Simulation):
     clock = pg.time.Clock()
     font = pg.font.Font(None, 36)
 
-    added_liquid_slider = CustomSlider(screen, my_font, 15+75+15+75+50, pg.display.get_surface().get_size()[1] - 45,
-                                       200, 20, 0.1, 10, 0.1, "Added liquid amount")
+    added_liquid_slider = CustomSlider(screen, my_font, 170, pg.display.get_surface().get_size()[1] - 95,
+                                       120, 20, 0.1, 10, 0.1, "Add liquid amount")
+    compression_slider = CustomSlider(screen, my_font, 320, pg.display.get_surface().get_size()[1] - 95,
+                                      120, 20, 0.1, 1, 0.1, "Fluid compression")
+
+    flow_slider = CustomSlider(screen, my_font, 20, pg.display.get_surface().get_size()[1] - 95,
+                               120, 20, 0.1, 1, 0.1, "Flow rate")
+    iterations_slider = CustomSlider(screen, my_font, 470, pg.display.get_surface().get_size()[1] - 95,
+                                     120, 20, 1, 6, 1, "Sim speed")
+
+    prev_compression, current_compression = COMPRESSION_MAX, COMPRESSION_MAX
+    prev_flow, current_flow = FLOW_SPEED, FLOW_SPEED
+    prev_iter, current_iter = ITERATIONS_PER_FRAME, ITERATIONS_PER_FRAME
 
     cycle = 0
     grid = simulation.cells
@@ -78,14 +89,29 @@ def run(simulation: Simulation):
                     lmb_pressed = False
                 if event.button == 3:  # RMB
                     rmb_pressed = False
-            elif event.type == pg.VIDEORESIZE:  # Move button so it is sticky to the bottom of the screen
-                width, height = event.w, event.h
-                screen = pg.display.set_mode((width, height), pg.RESIZABLE)
-                reset_button.Rect.y = height - 50
-                pause_button.Rect.y = height - 50
 
         added_liquid_slider.draw()
-        # print(added_liquid_slider.get_value())
+        compression_slider.draw()
+        flow_slider.draw()
+        iterations_slider.draw()
+
+        current_flow = flow_slider.get_value()
+        current_iter = int(iterations_slider.get_value())
+        current_compression = compression_slider.get_value()
+
+        if current_flow != prev_flow:
+            simulation.flow_speed = current_flow
+            prev_flow = current_flow
+
+        if current_iter != prev_iter:
+            simulation.iterations_per_frame = current_iter
+            prev_iter = current_iter
+
+        if current_compression != prev_compression:
+            simulation.compression_max = current_compression
+            prev_compression = current_compression
+
+        ADDED_LIQUID_AMOUNT = added_liquid_slider.get_value()
         pygame_widgets.update(events)
 
         if lmb_pressed:  # Define behavior for lmb pressed down
