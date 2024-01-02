@@ -5,7 +5,7 @@ from simulation import Simulation, Cell, CellType
 from visual.CustomSlider import CustomSlider
 from visual.button import Button
 from visual.utils import *
-
+from pygame_widgets.textbox import TextBox
 
 def run(simulation: Simulation):
     pg.init()
@@ -41,6 +41,8 @@ def run(simulation: Simulation):
     iterations_slider = CustomSlider(screen, my_font, 470, pg.display.get_surface().get_size()[1] - 95,
                                      120, 20, 1, 6, 1, "Sim speed", ITERATIONS_PER_FRAME)
 
+    info_text = my_font.render("Hold 's' or 'd' to create source or drain", False, (0, 0, 0))
+
     prev_compression, current_compression = COMPRESSION_MAX, COMPRESSION_MAX
     prev_flow, current_flow = FLOW_SPEED, FLOW_SPEED
     prev_iter, current_iter = ITERATIONS_PER_FRAME, ITERATIONS_PER_FRAME
@@ -50,6 +52,7 @@ def run(simulation: Simulation):
     cells_to_display = set([cell for row in grid for cell in row if not cell.settled])
     while running:
         screen.fill((255, 255, 255))  # Make background white
+        screen.blit(info_text, (250, pg.display.get_surface().get_size()[1] - 30))
         pg.draw.line(screen, (0, 0, 0), (0, HEIGHT*PIXEL_SIZE), (WIDTH*PIXEL_SIZE, HEIGHT*PIXEL_SIZE))
 
         if not paused:
