@@ -212,7 +212,7 @@ class Simulation:
         for i in range(1, self.iterations_per_frame + 1):
             for row in self.cells:
                 for cell in row:
-                    if i == self.iterations_per_frame and (cell.type == CellType.SOLID or cell.liquid >= LIQUID_MIN):
+                    if i == self.iterations_per_frame and (cell.type != CellType.BLANK or cell.liquid >= LIQUID_MIN):
                         cells_to_display.add(cell)
 
                     if cell.type == CellType.SOURCE:
