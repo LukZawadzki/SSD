@@ -9,7 +9,8 @@ from config import (
     FLOW_MAX,
     FLOW_MIN,
     FLOW_SPEED,
-    COMPRESSION_MAX, ITERATIONS_PER_FRAME
+    COMPRESSION_MAX,
+    ITERATIONS_PER_FRAME
 )
 
 
@@ -24,6 +25,14 @@ class Simulation:
             self._init_cell_neighbors(cell)
 
         self.reset_scheduled = False
+
+        self._compression_max = COMPRESSION_MAX
+        self._flow_speed = FLOW_SPEED
+        self._iterations_per_frame = ITERATIONS_PER_FRAME
+
+        self.next_compression_max = COMPRESSION_MAX
+        self.next_flow_speed = FLOW_SPEED
+        self.next_iterations_per_frame = ITERATIONS_PER_FRAME
 
     def _init_cell_neighbors(self, cell: Cell):
         """Initializes the neighbors of a cell."""
@@ -40,18 +49,17 @@ class Simulation:
         if cell.y + 1 < WIDTH:
             cell.right = self.cells[cell.x, cell.y + 1]
 
-    @staticmethod
-    def _calculate_vertical_flow_value(remaining_liquid: float, destination: Cell):
+    def _calculate_vertical_flow_value(self, remaining_liquid: float, destination: Cell):
         """Calculates how much liquid the destination cell can take."""
 
         total = remaining_liquid + destination.liquid
 
         if total <= LIQUID_MAX:
             return LIQUID_MAX
-        elif total < 2 * LIQUID_MAX + COMPRESSION_MAX:
-            return (LIQUID_MAX * LIQUID_MAX + total * COMPRESSION_MAX) / (LIQUID_MAX + COMPRESSION_MAX)
+        elif total < 2 * LIQUID_MAX + self._compression_max:
+            return (LIQUID_MAX * LIQUID_MAX + total * self._compression_max) / (LIQUID_MAX + self._compression_max)
         else:
-            return (total + COMPRESSION_MAX) / 2
+            return (total + self._compression_max) / 2
 
     @staticmethod
     def _constrain_flow(flow: float, remaining_liquid: float) -> float:
@@ -67,7 +75,7 @@ class Simulation:
 
         flow = self._calculate_vertical_flow_value(cell.liquid, cell.bottom) - cell.bottom.liquid
         if cell.bottom.liquid > 0 and flow > FLOW_MIN:
-            flow *= FLOW_SPEED
+            flow *= self._flow_speed
 
         flow = self._constrain_flow(flow, cell.liquid)
 
@@ -87,7 +95,7 @@ class Simulation:
 
         flow = (remaining_liquid - cell.left.liquid) / 4
         if flow > FLOW_MIN:
-            flow *= FLOW_SPEED
+            flow *= self._flow_speed
 
         flow = self._constrain_flow(flow, remaining_liquid)
 
@@ -106,7 +114,7 @@ class Simulation:
 
         flow = (remaining_liquid - cell.right.liquid) / 3
         if flow > FLOW_MIN:
-            flow *= FLOW_SPEED
+            flow *= self._flow_speed
 
         flow = self._constrain_flow(flow, remaining_liquid)
 
@@ -125,7 +133,7 @@ class Simulation:
 
         flow = remaining_liquid - self._calculate_vertical_flow_value(remaining_liquid, cell.top)
         if flow > FLOW_MIN:
-            flow *= FLOW_SPEED
+            flow *= self._flow_speed
 
         flow = self._constrain_flow(flow, remaining_liquid)
 
@@ -147,6 +155,13 @@ class Simulation:
 
                 if cell.next_type != cell.type:
                     cell.set_type(cell.next_type)
+
+    def _update_parameters(self):
+        """Updates the parameters of the simulation."""
+
+        self._compression_max = self.next_compression_max
+        self._flow_speed = self.next_flow_speed
+        self._iterations_per_frame = self.next_iterations_per_frame
 
     def _reset(self):
         """Resets the cells grid."""
@@ -184,13 +199,14 @@ class Simulation:
             self._reset()
 
         self._add_liquid_and_change_types()
+        self._update_parameters()
 
         cells_to_display = set()
 
-        for i in range(1, ITERATIONS_PER_FRAME + 1):
+        for i in range(1, self._iterations_per_frame + 1):
             for row in self.cells:
                 for cell in row:
-                    if i == ITERATIONS_PER_FRAME and (cell.type == CellType.SOLID or cell.liquid >= LIQUID_MIN):
+                    if i == self._iterations_per_frame and (cell.type == CellType.SOLID or cell.liquid >= LIQUID_MIN):
                         cells_to_display.add(cell)
 
                     if cell.settled:
@@ -212,7 +228,7 @@ class Simulation:
                         cell.flowing_down = False
 
                     remaining_liquid -= self._flow_bottom(cell)
-                    if i == ITERATIONS_PER_FRAME and cell.bottom and not cell.bottom.settled:
+                    if i == self._iterations_per_frame and cell.bottom and not cell.bottom.settled:
                         cells_to_display.add(cell.bottom)
 
                     if remaining_liquid < LIQUID_MIN:
@@ -220,7 +236,7 @@ class Simulation:
                         continue
 
                     remaining_liquid -= self._flow_left(cell, remaining_liquid)
-                    if i == ITERATIONS_PER_FRAME and cell.left and not cell.left.settled:
+                    if i == self._iterations_per_frame and cell.left and not cell.left.settled:
                         cells_to_display.add(cell.left)
 
                     if remaining_liquid < LIQUID_MIN:
@@ -228,7 +244,7 @@ class Simulation:
                         continue
 
                     remaining_liquid -= self._flow_right(cell, remaining_liquid)
-                    if i == ITERATIONS_PER_FRAME and cell.right and not cell.right.settled:
+                    if i == self._iterations_per_frame and cell.right and not cell.right.settled:
                         cells_to_display.add(cell.right)
 
                     if remaining_liquid < LIQUID_MIN:
@@ -236,7 +252,7 @@ class Simulation:
                         continue
 
                     remaining_liquid -= self._flow_top(cell, remaining_liquid)
-                    if i == ITERATIONS_PER_FRAME and cell.top and not cell.top.settled:
+                    if i == self._iterations_per_frame and cell.top and not cell.top.settled:
                         cells_to_display.add(cell.top)
 
                     if remaining_liquid < LIQUID_MIN:
@@ -245,7 +261,7 @@ class Simulation:
 
                     if remaining_liquid != start_liquid:
                         cell.unsettle_neighbors()
-                        if i == ITERATIONS_PER_FRAME:
+                        if i == self._iterations_per_frame:
                             if cell.top:
                                 cells_to_display.add(cell.top)
 
