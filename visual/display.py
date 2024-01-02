@@ -70,7 +70,8 @@ def run(simulation: Simulation):
                     if display_grid_pos[1] < HEIGHT*PIXEL_SIZE:  # Check if within simulation space
                         if grid[sim_grid_pos[1], sim_grid_pos[0]].type in [CellType.SOLID, CellType.DRAIN, CellType.SOURCE]:
                             mode = 0  # With this mode it will remove blocks when dragged
-
+                        else:
+                            mode = 1
                     if reset_button.Rect.collidepoint(event.pos):
                         simulation.reset()
                         pg.display.flip()
@@ -182,9 +183,9 @@ def run(simulation: Simulation):
 
             if cell.type == CellType.SOLID:  # Walls
                 pg.Surface.fill(screen, WALL_COLOR, create_block(pixel_pos, PIXEL_SIZE, PIXEL_SIZE))
-            elif cell.type == CellType.SOURCE:  # Wall
+            elif cell.type == CellType.SOURCE:
                 pg.Surface.fill(screen, SOURCE_COLOR, create_block(pixel_pos, PIXEL_SIZE, PIXEL_SIZE))
-            elif cell.type == CellType.DRAIN:  # Walls
+            elif cell.type == CellType.DRAIN:
                 pg.Surface.fill(screen, DRAIN_COLOR, create_block(pixel_pos, PIXEL_SIZE, PIXEL_SIZE))
             elif cell.liquid > LIQUID_MIN:  # Water
                 scaled_color = calc_color_from_pressure(cell.liquid)
