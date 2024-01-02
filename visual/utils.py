@@ -21,7 +21,7 @@ def get_grid_pos():
 
 def calc_color_from_pressure(pressure):
     f = min(pressure/4, 1)
-    r = int(water_color[0] + (dark_water[0] - water_color[0])*f)
-    g = int(water_color[1] + (dark_water[1] - water_color[1])*f)
-    b = int(water_color[2] + (dark_water[2] - water_color[2])*f)
+    r = int(WATER_COLOR[0] + (DARK_WATER_COLOR[0] - WATER_COLOR[0]) * f)
+    g = int(WATER_COLOR[1] + (DARK_WATER_COLOR[1] - WATER_COLOR[1]) * f)
+    b = int(WATER_COLOR[2] + (DARK_WATER_COLOR[2] - WATER_COLOR[2]) * f)
     return r, g, b

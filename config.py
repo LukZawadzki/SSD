@@ -1,5 +1,5 @@
-WIDTH = 30
-HEIGHT = 30
+WIDTH = 70
+HEIGHT = 70
 
 LIQUID_MIN = 0.005
 LIQUID_MAX = 1.0
@@ -8,15 +8,18 @@ COMPRESSION_MAX = 0.25
 
 FLOW_MIN = 0.005
 FLOW_MAX = 4.0
-FLOW_SPEED = 1
+FLOW_SPEED = 0.9
 
-FPS = 60
+FPS = 300
 ADDED_LIQUID_AMOUNT = 1.5
 
-# --- SIMULATION CONFIG --- #
-PIXEL_SIZE = 20
-wall_color = (0, 0, 0)  # Black
-water_color = (173, 216, 230)  # Light Blue
-dark_water = (0, 25, 50)
+ITERATIONS_PER_FRAME = 3
+
+# --- DISPLAY CONFIG --- #
+PIXEL_SIZE = 10
+
+WALL_COLOR = (0, 0, 0)  # black
+WATER_COLOR = (173, 216, 230)  # light blue
+DARK_WATER_COLOR = (0, 25, 50)  # dark blue
 
 SCREEN_SIZE = [WIDTH * PIXEL_SIZE, HEIGHT * PIXEL_SIZE]

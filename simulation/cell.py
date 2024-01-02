@@ -16,6 +16,9 @@ class Cell:
         self.type = _type
         self.liquid = 0
         self.settled = True
+        self.settle_count = 0
+
+        self.flowing_down = False
 
         self.top: Cell | None = None
         self.bottom: Cell | None = None
@@ -28,6 +31,12 @@ class Cell:
     def __repr__(self):
         # return f'<Cell x={self.x} y={self.y} liquid={self.liquid}>'
         return (f'{self.liquid:.1f}' if self.liquid else '' if self.type == CellType.BLANK else 'XXX').center(3)
+
+    def unsettle(self):
+        """Unsettles the cell."""
+
+        self.settled = False
+        self.settle_count = 0
 
     def add_liquid(self, amount: float):
         """Adds liquid to the cell."""
@@ -48,16 +57,16 @@ class Cell:
         """Unsettles the cell's neighbors."""
 
         if self.top:
-            self.top.settled = False
+            self.top.unsettle()
 
         if self.bottom:
-            self.bottom.settled = False
+            self.bottom.unsettle()
 
         if self.left:
-            self.left.settled = False
+            self.left.unsettle()
 
         if self.right:
-            self.right.settled = False
+            self.right.unsettle()
 
 
 CellGrid = np.ndarray[Any, np.dtype[Cell]]  # TODO: make the type hints actually work

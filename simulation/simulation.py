@@ -9,7 +9,7 @@ from config import (
     FLOW_MAX,
     FLOW_MIN,
     FLOW_SPEED,
-    COMPRESSION_MAX
+    COMPRESSION_MAX, ITERATIONS_PER_FRAME
 )
 
 
@@ -21,11 +21,11 @@ class Simulation:
         )
         self.diffs = np.zeros((HEIGHT, WIDTH))
         for cell in self.cells.flatten():
-            self._initiate_cell_neighbors(cell)
+            self._init_cell_neighbors(cell)
 
         self.reset_scheduled = False
 
-    def _initiate_cell_neighbors(self, cell: Cell):
+    def _init_cell_neighbors(self, cell: Cell):
         """Initializes the neighbors of a cell."""
 
         if cell.x - 1 >= 0:
@@ -41,8 +41,8 @@ class Simulation:
             cell.right = self.cells[cell.x, cell.y + 1]
 
     @staticmethod
-    def _calculate_vertical_flow_value(remaining_liquid: float, destination: 'Cell'):
-        """Calculates how much liquid should flow to the destination cell."""
+    def _calculate_vertical_flow_value(remaining_liquid: float, destination: Cell):
+        """Calculates how much liquid the destination cell can take."""
 
         total = remaining_liquid + destination.liquid
 
@@ -74,7 +74,8 @@ class Simulation:
         if flow:
             self.diffs[cell.x, cell.y] -= flow
             self.diffs[cell.bottom.x, cell.bottom.y] += flow
-            cell.bottom.settled = False
+            cell.flowing_down = True
+            cell.bottom.unsettle()
 
         return flow
 
@@ -93,7 +94,7 @@ class Simulation:
         if flow:
             self.diffs[cell.x, cell.y] -= flow
             self.diffs[cell.left.x, cell.left.y] += flow
-            cell.left.settled = False
+            cell.left.unsettle()
 
         return flow
 
@@ -112,7 +113,7 @@ class Simulation:
         if flow:
             self.diffs[cell.x, cell.y] -= flow
             self.diffs[cell.right.x, cell.right.y] += flow
-            cell.right.settled = False
+            cell.right.unsettle()
 
         return flow
 
@@ -131,17 +132,15 @@ class Simulation:
         if flow:
             self.diffs[cell.x, cell.y] -= flow
             self.diffs[cell.top.x, cell.top.y] += flow
-            cell.top.settled = False
+            cell.top.unsettle()
 
         return flow
 
     def _add_liquid_and_change_types(self):
         """Adds liquid and changes the cell types."""
 
-        for x in range(HEIGHT):
-            for y in range(WIDTH):
-                cell: Cell = self.cells[x, y]
-
+        for row in self.cells:
+            for cell in row:
                 if cell.liquid_to_add:
                     cell.add_liquid(cell.liquid_to_add)
                     cell.liquid_to_add = 0
@@ -178,61 +177,98 @@ class Simulation:
 
         self.reset_scheduled = True
 
-    def run(self):
-        """Runs one step of the simulation."""
+    def run(self) -> set[Cell]:
+        """Runs `ITERATIONS_PER_FRAME` steps of the simulation. Returns the cells which need to be displayed."""
 
         if self.reset_scheduled:
             self._reset()
 
         self._add_liquid_and_change_types()
 
-        for x in range(HEIGHT):
-            for y in range(WIDTH):
-                cell: Cell = self.cells[x, y]
+        cells_to_display = set()
 
-                if cell.settled:
-                    continue
+        for i in range(1, ITERATIONS_PER_FRAME + 1):
+            for row in self.cells:
+                for cell in row:
+                    if i == ITERATIONS_PER_FRAME and (cell.type == CellType.SOLID or cell.liquid >= LIQUID_MIN):
+                        cells_to_display.add(cell)
 
-                if not cell.liquid:
-                    continue
+                    if cell.settled:
+                        continue
 
-                if cell.liquid < LIQUID_MIN:
-                    cell.liquid = 0
-                    continue
+                    if not cell.liquid:
+                        continue
 
-                start_liquid = cell.liquid
-                remaining_liquid = cell.liquid
+                    if cell.liquid < LIQUID_MIN:
+                        cell.liquid = 0
+                        continue
 
-                remaining_liquid -= self._flow_bottom(cell)
-                if remaining_liquid < LIQUID_MIN:
-                    self.diffs[x, y] -= remaining_liquid
-                    continue
+                    x, y = cell.x, cell.y
 
-                remaining_liquid -= self._flow_left(cell, remaining_liquid)
-                if remaining_liquid < LIQUID_MIN:
-                    self.diffs[x, y] -= remaining_liquid
-                    continue
+                    start_liquid = cell.liquid
+                    remaining_liquid = cell.liquid
 
-                remaining_liquid -= self._flow_right(cell, remaining_liquid)
-                if remaining_liquid < LIQUID_MIN:
-                    self.diffs[x, y] -= remaining_liquid
-                    continue
+                    if cell.flowing_down:
+                        cell.flowing_down = False
 
-                remaining_liquid -= self._flow_top(cell, remaining_liquid)
-                if remaining_liquid < LIQUID_MIN:
-                    self.diffs[x, y] -= remaining_liquid
-                    continue
+                    remaining_liquid -= self._flow_bottom(cell)
+                    if i == ITERATIONS_PER_FRAME and cell.bottom and not cell.bottom.settled:
+                        cells_to_display.add(cell.bottom)
 
-                if remaining_liquid != start_liquid:
-                    cell.unsettle_neighbors()
+                    if remaining_liquid < LIQUID_MIN:
+                        self.diffs[x, y] -= remaining_liquid
+                        continue
 
-        for x in range(HEIGHT):
-            for y in range(WIDTH):
-                diff = self.diffs[x, y]
-                if diff:
-                    self.cells[x, y].liquid += diff
+                    remaining_liquid -= self._flow_left(cell, remaining_liquid)
+                    if i == ITERATIONS_PER_FRAME and cell.left and not cell.left.settled:
+                        cells_to_display.add(cell.left)
 
-        self.diffs = np.zeros((HEIGHT, WIDTH))
+                    if remaining_liquid < LIQUID_MIN:
+                        self.diffs[x, y] -= remaining_liquid
+                        continue
 
-        # print()
-        # print(self.cells)
+                    remaining_liquid -= self._flow_right(cell, remaining_liquid)
+                    if i == ITERATIONS_PER_FRAME and cell.right and not cell.right.settled:
+                        cells_to_display.add(cell.right)
+
+                    if remaining_liquid < LIQUID_MIN:
+                        self.diffs[x, y] -= remaining_liquid
+                        continue
+
+                    remaining_liquid -= self._flow_top(cell, remaining_liquid)
+                    if i == ITERATIONS_PER_FRAME and cell.top and not cell.top.settled:
+                        cells_to_display.add(cell.top)
+
+                    if remaining_liquid < LIQUID_MIN:
+                        self.diffs[x, y] -= remaining_liquid
+                        continue
+
+                    if remaining_liquid != start_liquid:
+                        cell.unsettle_neighbors()
+                        if i == ITERATIONS_PER_FRAME:
+                            if cell.top:
+                                cells_to_display.add(cell.top)
+
+                            if cell.bottom:
+                                cells_to_display.add(cell.bottom)
+
+                            if cell.left:
+                                cells_to_display.add(cell.left)
+
+                            if cell.right:
+                                cells_to_display.add(cell.right)
+                    else:
+                        cell.settle_count += 1
+                        if cell.settle_count >= 10:
+                            cell.settled = True
+
+            for x in range(HEIGHT):
+                for y in range(WIDTH):
+                    diff = self.diffs[x, y]
+                    if diff:
+                        self.cells[x, y].liquid += diff
+
+            self.diffs = np.zeros((HEIGHT, WIDTH))
+
+        return cells_to_display
+

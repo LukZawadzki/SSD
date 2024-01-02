@@ -1,14 +1,13 @@
+import pygame_widgets
+
+from config import *
+from simulation import Simulation, Cell, CellType
+from visual.CustomSlider import CustomSlider
 from visual.button import Button
 from visual.utils import *
-from config import *
-from simulation.cell import CellType
-from simulation.cell import Cell
-import pygame_widgets
-from pygame_widgets.slider import Slider
-from pygame_widgets.textbox import TextBox
-from visual.CustomSlider import CustomSlider
 
-def run(simulation):
+
+def run(simulation: Simulation):
     pg.init()
     pg.font.init()
 
@@ -35,7 +34,7 @@ def run(simulation):
 
     cycle = 0
     grid = simulation.cells
-    unsettled_cells = [cell for row in grid for cell in row if not cell.settled]
+    cells_to_display = set([cell for row in grid for cell in row if not cell.settled])
     while running:
         screen.fill((255, 255, 255))  # Make background white
         pg.draw.line(screen, (0, 0, 0), (0, HEIGHT*PIXEL_SIZE), (WIDTH*PIXEL_SIZE, HEIGHT*PIXEL_SIZE))
@@ -43,10 +42,8 @@ def run(simulation):
         if not paused:
             # time.sleep(1 / FPS)
             clock.tick(FPS)
-            simulation.run()
+            cells_to_display = simulation.run()
             cycle += 1
-            grid = simulation.cells
-            unsettled_cells = [cell for row in grid for cell in row if not cell.settled]
 
         events = pg.event.get()
         for event in events:
@@ -67,8 +64,7 @@ def run(simulation):
                         pg.display.flip()
                         cycle = 0
                         mode = 0  # Don't draw on button when clicked
-                        unsettled_cells = []
-                        simulation.run()
+                        cells_to_display = simulation.run()
                     elif pause_button.Rect.collidepoint(event.pos):
                         if paused:
                             pause_button.change_text("Pause")
@@ -89,7 +85,7 @@ def run(simulation):
                 pause_button.Rect.y = height - 50
 
         added_liquid_slider.draw()
-        print(added_liquid_slider.get_value())
+        # print(added_liquid_slider.get_value())
         pygame_widgets.update(events)
 
         if lmb_pressed:  # Define behavior for lmb pressed down
@@ -99,7 +95,7 @@ def run(simulation):
                 if not mode:  # If block exists at pressed position then remove it
                     simulation.set_cell_type(sim_grid_pos[1], sim_grid_pos[0], CellType.BLANK)
                     # Update display even if simulation is paused
-                    for cell in unsettled_cells:
+                    for cell in cells_to_display:
                         if cell.x == sim_grid_pos[1] and cell.y == sim_grid_pos[0]:
                             cell.type = CellType.BLANK
                             cell.liquid = 0
@@ -126,7 +122,7 @@ def run(simulation):
                         if not found_cell:
                             cell_to_add = Cell(sim_grid_pos[1], sim_grid_pos[0], CellType.SOLID)
                             cell_to_add.settled = False
-                            unsettled_cells.append(cell_to_add)
+                            cells_to_display.add(cell_to_add)
 
                         # TODO: Still when moving mouse fast it skips to draw some cells, but water reveals them
 
@@ -138,33 +134,42 @@ def run(simulation):
                     simulation.add_liquid(sim_grid_pos[1], sim_grid_pos[0], ADDED_LIQUID_AMOUNT)
                     # Update display even when simulation is paused
                     found_cell = False
-                    for cell in unsettled_cells:
+                    for cell in cells_to_display:
                         if cell.x == sim_grid_pos[1] and cell.y == sim_grid_pos[0]:
                             cell.add_liquid(ADDED_LIQUID_AMOUNT)
                             found_cell = True
                             break
+
                     if not found_cell:
                         cell_to_add = Cell(sim_grid_pos[1], sim_grid_pos[0], CellType.BLANK)
                         cell_to_add.add_liquid(ADDED_LIQUID_AMOUNT)
-                        unsettled_cells.append(cell_to_add)
+                        cells_to_display.add(cell_to_add)
 
-        for cell in unsettled_cells:
+        # print(len(cells_to_display))
+        for cell in cells_to_display:
             pixel_pos = (cell.y * PIXEL_SIZE, cell.x * PIXEL_SIZE)
-            top_occupied = True if cell.top and cell.top.liquid > 0 else False
+            is_falling = cell.top and cell.top.liquid and cell.top.flowing_down
+
             if cell.type == CellType.SOLID:  # Walls
-                pg.Surface.fill(screen, wall_color,
-                                create_block(pixel_pos, PIXEL_SIZE, PIXEL_SIZE))
-            elif cell.liquid > 0:  # Water
+                pg.Surface.fill(screen, WALL_COLOR, create_block(pixel_pos, PIXEL_SIZE, PIXEL_SIZE))
+            elif cell.liquid > LIQUID_MIN:  # Water
                 scaled_color = calc_color_from_pressure(cell.liquid)
-                if not top_occupied:
-                    pg.Surface.fill(screen, scaled_color,
-                                    create_block(pixel_pos, PIXEL_SIZE, min(PIXEL_SIZE, cell.liquid*PIXEL_SIZE)))
+                if not is_falling:
+                    pg.Surface.fill(
+                        screen,
+                        scaled_color,
+                        create_block(pixel_pos, PIXEL_SIZE, min(PIXEL_SIZE, cell.liquid*PIXEL_SIZE))
+                    )
                 else:
-                    pg.Surface.fill(screen, scaled_color,
-                                    create_block(pixel_pos, PIXEL_SIZE, PIXEL_SIZE))
+                    pg.Surface.fill(
+                        screen,
+                        scaled_color,
+                        create_block(pixel_pos, PIXEL_SIZE, PIXEL_SIZE)
+                    )
+
         # Redraw
         display_fps(clock, font, screen)
-        pg.display.set_caption(f'current cycle: {cycle}')
+        pg.display.set_caption(f'Current cycle: {cycle}')
         reset_button.draw()
         pause_button.draw()
         pg.display.flip()
