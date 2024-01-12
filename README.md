@@ -38,4 +38,3 @@ If you would like to contribute to this project, feel free to submit issues or p
 ## License
 
 This project is licensed under the [GNU General Public License v3.0](LICENSE).
-```
