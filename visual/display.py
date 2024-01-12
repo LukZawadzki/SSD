@@ -2,10 +2,10 @@ import pygame_widgets
 
 from config import *
 from simulation import Simulation, Cell, CellType
-from visual.CustomSlider import CustomSlider
-from visual.button import Button
-from visual.utils import *
-from pygame_widgets.textbox import TextBox
+from .button import Button
+from .slider import CustomSlider
+from .utils import *
+
 
 def run(simulation: Simulation):
     pg.init()
