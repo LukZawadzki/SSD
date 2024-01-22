@@ -24,7 +24,7 @@ def run(simulation: Simulation):
     s_pressed = False
     d_pressed = False
     paused = True
-    mode = 1
+    placing_mode = True
 
     my_font = pg.font.SysFont('Arial', 16, True)
 
@@ -46,6 +46,7 @@ def run(simulation: Simulation):
     prev_compression, current_compression = COMPRESSION_MAX, COMPRESSION_MAX
     prev_flow, current_flow = FLOW_SPEED, FLOW_SPEED
     prev_iter, current_iter = ITERATIONS_PER_FRAME, ITERATIONS_PER_FRAME
+    prev_sim_grid_pos: tuple[int, int] | None = None
 
     cycle = 0
     grid = simulation.cells
@@ -72,14 +73,14 @@ def run(simulation: Simulation):
                     sim_grid_pos = (display_grid_pos[0] // PIXEL_SIZE, display_grid_pos[1] // PIXEL_SIZE)
                     if display_grid_pos[1] < HEIGHT*PIXEL_SIZE:  # Check if within simulation space
                         if grid[sim_grid_pos[1], sim_grid_pos[0]].type in [CellType.SOLID, CellType.DRAIN, CellType.SOURCE]:
-                            mode = 0  # With this mode it will remove blocks when dragged
+                            placing_mode = False  # With this mode it will remove blocks when dragged
                         else:
-                            mode = 1
+                            placing_mode = True
                     if reset_button.Rect.collidepoint(event.pos):
                         simulation.reset()
                         pg.display.flip()
                         cycle = 0
-                        mode = 0  # Don't draw on button when clicked
+                        placing_mode = 0  # Don't draw on button when clicked
                         cells_to_display = simulation.run()
                     elif pause_button.Rect.collidepoint(event.pos):
                         if paused:
@@ -92,6 +93,7 @@ def run(simulation: Simulation):
             elif event.type == pg.MOUSEBUTTONUP:
                 if event.button == 1:  # LMB released
                     lmb_pressed = False
+                    prev_sim_grid_pos = None
                 if event.button == 3:  # RMB
                     rmb_pressed = False
             elif event.type == pg.KEYDOWN:  # Keyboard press
@@ -131,17 +133,25 @@ def run(simulation: Simulation):
 
         if lmb_pressed:  # Define behavior for lmb pressed down
             display_grid_pos = get_grid_pos()
+
             if display_grid_pos[1] < HEIGHT*PIXEL_SIZE and 0 <= display_grid_pos[0] < WIDTH*PIXEL_SIZE:
                 sim_grid_pos = (display_grid_pos[0] // PIXEL_SIZE, display_grid_pos[1] // PIXEL_SIZE)
-                if not mode:  # If block exists at pressed position then remove it
+                pos_changed = sim_grid_pos != prev_sim_grid_pos
+                prev_sim_grid_pos = sim_grid_pos
+
+                if not placing_mode and pos_changed:  # If block exists at pressed position then remove it
                     simulation.set_cell_type(sim_grid_pos[1], sim_grid_pos[0], CellType.BLANK)
                     # Update display even if simulation is paused
-                    for cell in cells_to_display:
-                        if cell.x == sim_grid_pos[1] and cell.y == sim_grid_pos[0]:
-                            cell.type = CellType.BLANK
-                            cell.liquid = 0
-                            break
-                else:
+                    cell_to_delete = next(
+                        (
+                            cell for cell in cells_to_display 
+                            if cell.x == sim_grid_pos[1] and cell.y == sim_grid_pos[0]
+                        ), None
+                    )
+                    if cell_to_delete:
+                        cells_to_display.remove(cell_to_delete)
+
+                elif pos_changed:
                     # check if pressed on top of buttons
                     if (not reset_button.Rect.collidepoint(display_grid_pos)
                             and not pause_button.Rect.collidepoint(display_grid_pos)):
