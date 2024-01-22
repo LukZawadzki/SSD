@@ -4,8 +4,8 @@ from pygame_widgets.textbox import TextBox
 
 
 class CustomSlider:
-    def __init__(self, screen: pg.Surface, font:pg.font, x: int, y: int, width: int,
-                 height: int, min_value: float, max_value: float, step: float, text: str, default_value: float = None):
+    def __init__(self, screen: pg.Surface, font: pg.font.Font, x: int, y: int, width: int,
+                 height: int, min_value: float, max_value: float, step: float, text: str, default_value: float | None = None):
         pg.font.init()
         self.screen = screen
         self.font = font
