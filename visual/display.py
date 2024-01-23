@@ -2,6 +2,7 @@ import pygame_widgets
 
 from config import *
 from simulation import Simulation, Cell, CellType
+from .recorder import Recorder
 from .button import Button
 from .slider import CustomSlider
 from .utils import *
@@ -47,6 +48,9 @@ def run(simulation: Simulation):
     prev_flow, current_flow = FLOW_SPEED, FLOW_SPEED
     prev_iter, current_iter = ITERATIONS_PER_FRAME, ITERATIONS_PER_FRAME
     prev_sim_grid_pos: tuple[int, int] | None = None
+
+    recording = False
+    recorder = Recorder(filename=RECORDING_OUTPUT_FILE, frequency=RECORDING_FREQUENCY, cols=RECORDING_OUTPUT_COLUMNS, font=font)
 
     cycle = 0
     grid = simulation.cells
@@ -106,6 +110,13 @@ def run(simulation: Simulation):
                     s_pressed = False
                 elif event.key == pg.K_d:
                     d_pressed = False
+                elif event.key == pg.K_r:
+                    recording = not recording
+                    if recording:
+                        recorder.start()
+                    else:
+                        recorder.stop()
+
 
         added_liquid_slider.draw()
         compression_slider.draw()
@@ -215,9 +226,13 @@ def run(simulation: Simulation):
                         create_block(pixel_pos, PIXEL_SIZE, PIXEL_SIZE)
                     )
 
+        if recording and not paused:
+            surface = screen.subsurface(pg.Rect(0, 0, WIDTH * PIXEL_SIZE, HEIGHT * PIXEL_SIZE))
+            recorder.record(surface, cycle)
+
         # Redraw
         display_fps(clock, font, screen)
-        pg.display.set_caption(f'Current cycle: {cycle}')
+        pg.display.set_caption(f'Current cycle: {cycle} {"(Recording)" if recording else ""}')
         reset_button.draw()
         pause_button.draw()
         pg.display.flip()
